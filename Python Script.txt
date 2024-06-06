@@ -1,0 +1,76 @@
+import time
+
+import mysql.connector
+import requests
+
+
+def fetch_data(parameter_value):
+    url = 'http://........................./biznese' # API URL
+    headers = {'Authorization': 'RReouPQ3ms4yXMOKBUVRo2C68qy7sOvpCwOshQKj4E9ZUy5Q2FYaT6BxHI1e'}
+
+    # Assuming the parameter is sent in the request body
+    data = {'emer': '', 'nipt': parameter_value}
+
+    try:
+        response = requests.post(url, json=data, headers=headers)
+
+        # Check if the request was successful (status code 200)
+        response.raise_for_status()
+
+        # Assuming the response contains an array of objects
+        data_array = response.json().get('data', [])
+
+        return data_array
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching data: {e}")
+        raise
+
+def insert_data_into_database(data_array, cursor, connection):
+    for data_item in data_array:
+        # Assuming data_item is a dictionary
+        query = "INSERT INTO api_data (country, address, city, name, NIPT) VALUES (%s, %s, %s, %s, %s)"
+        values = (
+            data_item.get('country', None),
+            data_item.get('address', None),
+            data_item.get('city', None),
+            data_item.get('name', None),
+            data_item.get('NIPT', None)
+
+
+            # Add more columns as needed
+        )
+
+        cursor.execute(query, values)
+        connection.commit()
+
+# Example usage
+source_db_connection = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="F0Xj6-vPGqm-DPOtN-BstWX",
+    database="bntel3_bnt_pos"
+)
+
+source_cursor = source_db_connection.cursor()
+source_cursor.execute("SELECT id FROM nipt")
+id_values = source_cursor.fetchall()
+
+
+
+# Iterate over id_values and call fetch_data for each parameter value
+for id_value in id_values:
+    parameter_value = id_value[0]
+    print(f"Nipti: {parameter_value}")
+
+    try:
+        data_array = fetch_data(parameter_value)
+        print('Retrieved data:', data_array)
+        insert_data_into_database(data_array, source_cursor, source_db_connection)
+        time.sleep(15)
+
+
+    except Exception as e:
+        print('Error:', e)
+
+source_cursor.close()
+source_db_connection.close()
